@@ -49,9 +49,9 @@ def get_userid_from_token(token):
 def server_login(token, request_data, client_address):
     from user_details import UserDetails
     userDetails = UserDetails()
-    decrypted_username = decrypt(request_data['data']['username'], serverglobals.public_key, serverglobals.private_key)
-    decrypted_password = decrypt(request_data['data']['password'], serverglobals.public_key, serverglobals.private_key)
-    print("login details from db:",decrypted_username,decrypted_password)
+    # decrypted_username = decrypt(request_data['data']['username'], serverglobals.public_key, serverglobals.private_key)
+    # decrypted_password = decrypt(request_data['data']['password'], serverglobals.public_key, serverglobals.private_key)
+    # print("login details from db:",decrypted_username,decrypted_password)
     userdata = userDetails.user_run_query([("UserName", "==", request_data['data']['username']),
                                 ("Password", "==", request_data['data']['password'])])
     # userdata = userDetails.user_run_query([("UserId", "==", "fqWgjokotTLGQSwyUZvj")])
@@ -62,8 +62,8 @@ def server_login(token, request_data, client_address):
 
     print(userdata[0]['Username'])
     # decrypted_username = decrypt(int(userdata[0]['Username']), serverglobals.public_key, serverglobals.private_key)
-    print("decrypted username from db")
-    print(decrypted_username, decrypted_password)
+    # print("decrypted username from db")
+    # print(decrypted_username, decrypted_password)
     
     # print(decrypted_username,decrypted_password)
     if len(userdata) != 1:
@@ -71,7 +71,7 @@ def server_login(token, request_data, client_address):
 
     from user_session_info import UserSessionInfo
     userSessionInfo = UserSessionInfo()
-    # userSessionInfo.add_user_session(userId=userdata['UserId'],sessionUniqId=token)
+    # userSessionInfo.add_user_session(userId=userdata[0]['UserId'],sessionUniqId=token)
 
 def server_logout(token, request_data, client_address):
     from user_session_info import UserSessionInfo
@@ -272,102 +272,35 @@ def server_submit_vote_dropdown(self, token, request_data, client_address):
         return {'status': 'error', 'mes    sage': str(e)}
 
 
-async def handle_category_data(self, request_data, client_address):
+def get_selected_category_details(self, token, request_data, client_address):
     """
     Handle category data retrieval requests with token verification.
     Returns detailed category data for display in client listbox.
     """
     try:
-        # Verify the token first
-        if request_data.get('verify_token'):
-            user_ref = self.db.collection('users').document(client_address)
-            user_doc = user_ref.get()
+        user_id = get_userid_from_token(token)
+        if request_data['data']['request_type'] == 'get_voting_details':
+            from voting_cat_details_mapping import VotingCatDetailsMapping
+            votingCatDetailsMapping = VotingCatDetailsMapping()
+            mapping = votingCatDetailsMapping.get_voting_details_by_catid(request_data['data']['VotCatId'])
+            if len(mapping) == 0:
+                print.error(f"No mapping found for category_id {request_data['data']['VotCatId']}")
             
-            if not user_doc.exists:
-                return {
-                    'status': 'error',
-                    'error': 'User not found'
-                }
-            
-            # Get the requested category
-            category_name = request_data.get('category')
-            if not category_name:
-                return {
-                    'status': 'error',
-                    'error': 'Category not specified'
-                }
-            
-            # Check if user is eligible for this category
-            user_data = user_doc.to_dict()
-            user_categories = user_data.get('selected_categories', [])
-            
-            # Find the category ID from name
-            categories_ref = self.db.collection('voting_categories')
-            category_query = categories_ref.where('name', '==', category_name).limit(1).stream()
-            category_doc = next(category_query, None)
-            
-            if not category_doc:
-                return {
-                    'status': 'error',
-                    'error': 'Category not found'
-                }
-            
-            category_id = category_doc.id
-            if category_id not in user_categories:
-                return {
-                    'status': 'error',
-                    'error': 'User not eligible for this category'
-                }
-            
-            # Get the category items/candidates
-            items_ref = self.db.collection('voting_categories').document(category_id).collection('items')
-            items_query = items_ref.where('active', '==', True).stream()
-            
-            # Format the data for client display
-            items_data = []
-            for item in items_query:
-                item_data = item.to_dict()
-                items_data.append({
-                    'id': item.id,
-                    'name': item_data.get('name', ''),
-                    'description': item_data.get('description', ''),
-                    'additional_info': item_data.get('additional_info', {})
-                })
-            
-            # Check if voting is still open for this category
-            category_data = category_doc.to_dict()
-            current_time = datetime.now()
-            voting_end_time = category_data.get('voting_end_time')
-            
-            if voting_end_time and current_time > voting_end_time:
-                return {
-                    'status': 'error',
-                    'error': 'Voting period has ended for this category'
-                }
-            
-            # Log the data access
-            self.db.collection('access_logs').add({
-                'user_id': client_address,
-                'category_id': category_id,
-                'timestamp': current_time,
-                'action': 'view_category_data'
-            })
-            
-            return {
-                'status': 'success',
-                'data': items_data,
-                'category_info': {
-                    'name': category_data.get('name'),
-                    'description': category_data.get('description'),
-                    'voting_end_time': voting_end_time.isoformat() if voting_end_time else None
-                }
-            }
+            details_result = []
+            from voting_details import VotingDetails
+            votingDetails = VotingDetails()
+            for item in mapping:
+                details_json = votingDetails.get_voting_details(item['VotDtlsId'])
+                print(details_json)
+                details_result.append(details_json)
+            print(details_result)
+            return details_result
             
     except Exception as e:
-        print(f"Error in handle_category_data: {str(e)}")  # Server-side logging
+        print(f"Error in get_selected_category_details: {str(e)}")  # Server-side logging
         return {
             'status': 'error',
-            'error': 'Failed to retrieve category data'
+            'error': 'Failed to retrieve category details'
         }
 
 async def server_handle_profile(self, request_data, client_address):

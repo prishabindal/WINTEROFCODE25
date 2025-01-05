@@ -57,8 +57,8 @@ def addUserDetails():
 
 def addCatDetailsMapping():
     from voting_cat_details_mapping import VotingCatDetailsMapping
-    votingCatDetailsMapping = VotingCatDetailsMapping
-    id = votingCatDetailsMapping.add_cat_dtls_mapping(votCatId=1, votDtlsId=1)
+    votingCatDetailsMapping = VotingCatDetailsMapping()
+    id = votingCatDetailsMapping.add_cat_dtls_mapping(votCatId='1', votDtlsId='1')
     print(votingCatDetailsMapping.get_voting_details_by_id(id))
 
     print(votingCatDetailsMapping.get_all_mappings())

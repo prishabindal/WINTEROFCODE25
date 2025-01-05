@@ -28,7 +28,7 @@ class VotingCatDetailsMapping(FirebaseDBBase):
         }
         id = self.add_document(data)
         data['id'] = id
-        self.update_cat_dtls_mapping(id, data)
+        self.update_cat_dtls_mapping(data)
         print(f"Voting Category Details Mapping saved with id: {id}")
         return id
 

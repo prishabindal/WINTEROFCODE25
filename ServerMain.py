@@ -7,7 +7,7 @@ import json
 import secrets
 import ssl
 import asyncio
-from serverfunctions import server_vote_category, server_submit_vote_dropdown, server_registeration, server_login, server_logout
+from serverfunctions import server_vote_category, server_submit_vote_dropdown, server_registeration, server_login, server_logout, get_selected_category_details
 from datetime import datetime
 import serverglobals
 from firebase_config import initialize_firebase
@@ -133,6 +133,26 @@ class SecureTokenServer:
                                     'status': 'error',
                                     'message': f'Failed to fetch selected categories: {str(e)}'
                                 }
+                    elif json_data.get('action') == 'get_voting_details':
+                        print("get_voting_details")
+                        category_details = []
+    
+                        if 'data' in json_data and json_data['data'].get('request_type') == 'get_voting_details':
+                            try:
+                                
+                                category_details = get_selected_category_details(self, token, json_data, client_address)
+                                
+                                response = {
+                                    'status': 'success',
+                                    'category_details': category_details
+                                }
+                            except Exception as e:
+                                response = {
+                                    'status': 'error',
+                                    'message': f'Failed to fetch selected category details: {str(e)}'
+                                }
+                
+
 
                     elif json_data.get('action') == 'logout':
       

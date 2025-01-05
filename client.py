@@ -151,78 +151,101 @@ class VotingSystem:
     def select_category(self, category):
         """Handle category selection from the dropdown."""
         self.selected_category.set(category)
+        
         print(f"Selected category: {category}")
         response = self.send_json_request("get_voting_details", {
-            "request_type": 'get_voting_details'
+            "request_type": 'get_voting_details',
+            "category": category
         })
-       
 
-    
+        self.selected_detail = tk.StringVar()
+
+        category_details = response.get('category_details', [])
+        if len(category_details) == 0:
+            messagebox.showwarning("Warning", "No voting detail available for this category ")
+
+        # details_vars = {}
+        # for details in category_details:
+        #     var = tk.BooleanVar(value=category.get('is_selected', False))
+        #     details_vars[category['VotCatId']] = var
+
+        # Create label for the section
+        ttk.Label(Globals.content_frame, text=f"Details for {category}:").pack(anchor='w')
+        
+        # Create radio buttons for each option in the response
+        
+        for details in category_details:
+            ttk.Radiobutton(
+                Globals.content_frame,
+                text=details['VotDtlsName'],
+                value=details['VotDtlsId'],
+                variable=self.selected_detail,
+                command=self.handle_detail_selection
+            ).pack(anchor='w', pady=2)
+        ttk.Button(
+            Globals.content_frame,
+            text="Submit",
+            command=lambda: self.submit_vote_ok()     
+        ).pack(pady=10)                                         
+        
+        
+    def handle_detail_selection(self):
+        """Handle when a radio button option is selected."""
+        selected_value = self.selected_detail.get()
+        print(f"Selected detail: {selected_value}")
+            
+
+      
     def submit_vote_ok(self):
         """Display voting options for selected category"""
-        if not self.category_var.get():
-            messagebox.showwarning("Warning", "Please select a category")
+        if not self.selected_detail.get():
+            messagebox.showwarning("Warning", "Please select a voting detail")
             return
-            
-        frame = self.create_main_frame()
-        
+          
+       
         # Get voting options for selected category
         response = self.send_json_request("get_voting_options", {
-            "auth_token": self.auth_token,
-            "category": self.category_var.get()
+                        "voting_detail": self.selected_detail.get()
         })
         
         if not response or response.get('status') != 'success':
             messagebox.showerror("Error", "Failed to retrieve voting options")
             return
-        
+        voting_options = response.get('voting_options',[])
         # Create radio buttons for options
-        self.vote_var = tk.StringVar()
-        for option in response['data']:
+        self.selected_option = tk.StringVar()
+        for option in voting_options:
             ttk.Radiobutton(
-                frame,
-                text=option['name'],
-                value=option['id'],
-                variable=self.vote_var
+                Globals.content_frame,
+                text=option['VotDtlsOptionName'],
+                value=option['VotDtlsOptionId'],
+                variable=self.selected_option
             ).pack(anchor=tk.W, pady=2)
         
         ttk.Button(
-            frame,
+            Globals.content_frame,
             text="Submit Vote",
             command=self.submit_vote_submit
         ).pack(pady=10)
     
     def submit_vote_submit(self):
         """Submit final vote"""
-        if not self.vote_var.get():
+        if not self.selected_option.get():
             messagebox.showwarning("Warning", "Please select an option")
             return
         
         response = self.send_json_request("submit_vote", {
-            "auth_token": self.auth_token,
-            "category": self.category_var.get(),
-            "selected_option": self.vote_var.get()
+                    "selected_option": self.selected_option.get()
         })
         
         if response and response.get('status') == 'success':
             messagebox.showinfo("Success", "Vote submitted successfully")
-            self.vote_category_view()  # Return to main view
+            from Client_connection import clear_content_frame
+            clear_content_frame()
         else:
             messagebox.showerror("Error", "Failed to submit vote")
     
-    # def send_json_request(self, endpoint, data):
-    #     """Send request to server"""
-    #     try:
-    #         response = requests.post(
-    #             f"http://localhost:5000/{endpoint}",
-    #             json=data,
-    #             headers={"Authorization": f"Bearer {self.auth_token}"}
-    #         )
-    #         return response.json()
-    #     except Exception as e:
-    #         print(f"Request error: {e}")
-    #         return None
-
+    
     def send_json_request(self,action, data):
 
         print(f"Action: {action}")
@@ -256,16 +279,7 @@ class VotingSystem:
 
 
                 return json.loads(response) if response else None
-                # Assuming the response is encrypted as well, decrypt it
-                # if response:
-                #     response_data = json.loads(response)
-                    # decrypted_response = {
-                    #     k: Globals.paillier_private_key.decrypt(v) for k, v in response_data.items()
-                    # }
-                #     print(f"Decrypted Response: {decrypted_response}")
-                #     return decrypted_response
-                # else:
-                #     return None
+               
             else:
                 print("Socket is None or invalid.")
                 messagebox.showerror("Connection Error", "No secure connection to server")
