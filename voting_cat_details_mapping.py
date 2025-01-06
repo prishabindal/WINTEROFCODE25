@@ -10,6 +10,8 @@ class VotingCatDetailsMapping(FirebaseDBBase):
         super().__init__('VOTING_CAT_DETAILS_MAPPING')
 
     def get_voting_details_by_catid(self, votCatId):
+        print("get_voting_details_by_catid")
+        print("VotCatId", "==", votCatId)
         return self.cat_dtls_mapping_run_query([("VotCatId", "==", votCatId)])
 
     def get_voting_details_by_dtlsid(self, votDtlsId):

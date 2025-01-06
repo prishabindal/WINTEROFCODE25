@@ -52,7 +52,8 @@ def server_login(token, request_data, client_address):
     # decrypted_username = decrypt(request_data['data']['username'], serverglobals.public_key, serverglobals.private_key)
     # decrypted_password = decrypt(request_data['data']['password'], serverglobals.public_key, serverglobals.private_key)
     # print("login details from db:",decrypted_username,decrypted_password)
-    userdata = userDetails.user_run_query([("UserName", "==", request_data['data']['username']),
+    print(userDetails.get_all_users())
+    userdata = userDetails.user_run_query([("Username", "==", request_data['data']['username']),
                                 ("Password", "==", request_data['data']['password'])])
     # userdata = userDetails.user_run_query([("UserId", "==", "fqWgjokotTLGQSwyUZvj")])
     # userdata = userDetails.user_run_query([("Username", "==", request_data['data']['username'])])
@@ -273,12 +274,13 @@ def server_submit_vote_dropdown(self, token, request_data, client_address):
 
 
 def get_selected_category_details(self, token, request_data, client_address):
+    print("get_selected_category_details")
     """
     Handle category data retrieval requests with token verification.
     Returns detailed category data for display in client listbox.
     """
     try:
-        user_id = get_userid_from_token(token)
+        # user_id = get_userid_from_token(token)
         if request_data['data']['request_type'] == 'get_voting_details':
             from voting_cat_details_mapping import VotingCatDetailsMapping
             votingCatDetailsMapping = VotingCatDetailsMapping()
@@ -287,6 +289,7 @@ def get_selected_category_details(self, token, request_data, client_address):
                 print.error(f"No mapping found for category_id {request_data['data']['VotCatId']}")
             
             details_result = []
+            print(details_result)
             from voting_details import VotingDetails
             votingDetails = VotingDetails()
             for item in mapping:

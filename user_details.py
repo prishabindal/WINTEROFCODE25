@@ -46,3 +46,7 @@ class UserDetails(FirebaseDBBase):
     
     def user_run_or_query(self, or_conditions):
         return self.run_or_query(or_conditions)
+    
+    def get_all_users(self):
+        print("Get all users")
+        return self.get_all_values()
